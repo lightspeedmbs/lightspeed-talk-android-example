@@ -11,16 +11,9 @@ public class Utils {
 			public static final String IMAGE = "image";
 			public static final String LINK = "link";
 			public static final String VIDEO = "video";
-			public static final String LOCATION = "location";
-			
-		}
-		public class HistoryItem{
-			public static final String FROM = "from";
-			public static final String MSG = "msg";
-			public static final String DATA = "data";
-			public static final String CONTENT = "content";
-			public static final String TYPE = "type";
-			
+			public static final String LOCATION = "location";	
+			public static final String TEXT = "text";	
+			public static final String NULL = "null";	
 		}
 		public class MsgCustomData{
 			public static final String DATA = "data";

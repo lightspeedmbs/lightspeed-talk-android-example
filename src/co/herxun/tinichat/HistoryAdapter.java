@@ -16,13 +16,13 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 public class HistoryAdapter extends BaseAdapter {
-	private ArrayList<HashMap<String,Object>> mData;
+	private ArrayList<MyMessage> mData;
 	private Map<String,String> mClientId2Name;
 	private String mClientId;
 	private Context ct;
 	
 	
-	public HistoryAdapter(Context context, ArrayList<HashMap<String, Object>> history,String clientId,Map<String,String> clientId2Name) {
+	public HistoryAdapter(Context context, ArrayList<MyMessage> history,String clientId,Map<String,String> clientId2Name) {
 		ct = context;
 		mData = history;
 		mClientId = clientId;
@@ -43,8 +43,8 @@ public class HistoryAdapter extends BaseAdapter {
 	
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
-		HashMap<String, Object> msg = mData.get(position) ;
-		
+		MyMessage msg = mData.get(position) ;
+		String type = msg.getType();
 		
 		int id = 1;
 		RelativeLayout itemView = new RelativeLayout(ct);
@@ -60,37 +60,19 @@ public class HistoryAdapter extends BaseAdapter {
 		textContent.setTextColor(0xff000000);
 		ImageView imgAttechment = new ImageView(ct);
 		imgAttechment.setId(id++);
-		
-		String type = null;
-		int icon = 0;
-		if(msg.containsKey(Utils.Constant.HistoryItem.TYPE)&&!msg.get(Utils.Constant.HistoryItem.TYPE).equals(null)){
-			type=(String) msg.get(Utils.Constant.HistoryItem.TYPE);
-			
-			if (type.equals(Utils.Constant.AttachmentType.IMAGE)) {
-				Log.e("??? type", type);
-				icon = R.drawable.tabicon_image_select;
-			} else if (type.equals(Utils.Constant.AttachmentType.VIDEO)) {
-				icon = R.drawable.tabicon_video_select;
-			} else if (type.equals(Utils.Constant.AttachmentType.LINK)) {
-				icon = R.drawable.tabicon_link_select;
-			} else if (type.equals(Utils.Constant.AttachmentType.LOCATION)) {
-				icon = R.drawable.tabicon_location;
-			}
-		}
-
 		RelativeLayout.LayoutParams paramsTextUsername = new RelativeLayout.LayoutParams(-2,-2);
 		RelativeLayout.LayoutParams paramsTextContent = new RelativeLayout.LayoutParams(-2,-2);
 		paramsTextContent.addRule(RelativeLayout.BELOW, textUserName.getId());
 		RelativeLayout.LayoutParams paramsImageAttech = new RelativeLayout.LayoutParams(-2,-2);
 		paramsImageAttech.addRule(RelativeLayout.BELOW, textUserName.getId());
-		if(msg.get("from").equals(mClientId)){
+		if(msg.getFrom().equals(mClientId)){
 			textUserName.setText("Me");
 			paramsTextUsername.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
 			paramsImageAttech.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
 			paramsTextContent.addRule(RelativeLayout.LEFT_OF, imgAttechment.getId());
 			paramsImageAttech.leftMargin = 20;
 		}else{
-			textUserName.setText(mClientId2Name.containsKey(msg.get("from")) ? mClientId2Name.get(msg.get("from")):"???");
+			textUserName.setText(mClientId2Name.containsKey(msg.getFrom()) ? mClientId2Name.get(msg.getFrom()):"???");
 			paramsTextUsername.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
 			paramsImageAttech.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
 			paramsTextContent.addRule(RelativeLayout.RIGHT_OF, imgAttechment.getId());
@@ -100,10 +82,16 @@ public class HistoryAdapter extends BaseAdapter {
 		textContent.setLayoutParams(paramsTextContent);
 		imgAttechment.setLayoutParams(paramsImageAttech);
 		
-		if(type!=null){
-			imgAttechment.setImageResource(icon);
+		if (type.equals(Utils.Constant.AttachmentType.IMAGE)) {
+			imgAttechment.setImageResource( R.drawable.tabicon_image_select);
+		} else if (type.equals(Utils.Constant.AttachmentType.VIDEO)) {
+			imgAttechment.setImageResource(R.drawable.tabicon_video_select);
+		} else if (type.equals(Utils.Constant.AttachmentType.LINK)) {
+			imgAttechment.setImageResource(R.drawable.tabicon_link_select);
+		} else if (type.equals(Utils.Constant.AttachmentType.LOCATION)) {
+			imgAttechment.setImageResource(R.drawable.tabicon_location);
 		}
-		textContent.setText((CharSequence) msg.get("msg"));
+		textContent.setText((CharSequence) msg.getMsg());
 		
 		itemView.addView(textUserName);
 		itemView.addView(textContent);
@@ -111,7 +99,7 @@ public class HistoryAdapter extends BaseAdapter {
 		
 		return itemView;
 	}
-	public void updateReceiptsList(HashMap<String, Object> newMsg) {
+	public void updateReceiptsList(MyMessage newMsg) {
 		mData.add(0, newMsg);
 	    this.notifyDataSetChanged();
 	}

@@ -38,6 +38,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 import co.herxun.tinichat.HistoryAdapter;
+import co.herxun.tinichat.MyMessage;
 import co.herxun.tinichat.R;
 import co.herxun.tinichat.TinichatApplication;
 import co.herxun.tinichat.Utils;
@@ -64,14 +65,11 @@ public class ChatActivity extends Activity {
 	
 	private TinichatApplication mTA;
 	private HistoryAdapter historyAdapter;
-	private ArrayList<HashMap<String, Object>> history;
+	private ArrayList<MyMessage> history;
 
 	private int roomType = Utils.Constant.RoomType.DEFAULT;
 	private String targetId = "";
-	private String mMsg = "";
-	private String mAttachment = "";
-	private String mAttachmentType = "";
-	private byte[] mAttachmentData ;
+	private MyMessage messageToSend;
 	private AnIMGetTopicInfoCallbackData mTopicInfo;
 	
 	@Override
@@ -152,30 +150,41 @@ public class ChatActivity extends Activity {
 					public void run() {
 						history.clear();
 						for (int i = historyList.size()-1; i >=0; i--) {
-							HashMap<String, Object> item = new HashMap<String, Object>();
+							MyMessage mMessage;
 							if(historyList.get(i).getType() == AnIMMessageType.AnIMBinaryMessage){
-								item.put(Utils.Constant.HistoryItem.FROM, historyList.get(i).getFrom());
-								item.put(Utils.Constant.HistoryItem.CONTENT, historyList.get(i).getContent());
-								item.put(Utils.Constant.HistoryItem.TYPE, historyList.get(i).getFileType());
+								mMessage = new MyMessage(
+										historyList.get(i).getFrom(),
+										historyList.get(i).getFileType(),
+										null,
+										null,
+										historyList.get(i).getContent()
+										);
 							}else{
 								Map customData = historyList.get(i).getCustomData();
-								if(customData!=null){
-									String customData_data = (String) customData.get(Utils.Constant.MsgCustomData.DATA);
-									String customData_type = (String) customData.get(Utils.Constant.MsgCustomData.TYPE);
-									item.put(Utils.Constant.HistoryItem.FROM, historyList.get(i).getFrom());
-									item.put(Utils.Constant.HistoryItem.MSG, historyList.get(i).getMessage());
-									if (customData != null) {
-										if (customData_data!=null)
-											item.put(Utils.Constant.HistoryItem.DATA,customData_data);
-										if (customData_type!=null)
-											item.put(Utils.Constant.HistoryItem.TYPE,customData_type);
-									}
+								if(customData != null){
+									String customData_data = customData.containsKey(Utils.Constant.MsgCustomData.DATA) ? 
+											(String) customData.get(Utils.Constant.MsgCustomData.DATA) : null;
+									String customData_type = customData.containsKey(Utils.Constant.MsgCustomData.TYPE) ?
+											(String) customData.get(Utils.Constant.MsgCustomData.TYPE) : null;
+									
+									mMessage = new MyMessage(
+											historyList.get(i).getFrom(),
+											customData_type,
+											historyList.get(i).getMessage(),
+											customData_data,
+											historyList.get(i).getContent()
+											);
 								}else{
-									item.put(Utils.Constant.HistoryItem.FROM, historyList.get(i).getFrom());
-									item.put(Utils.Constant.HistoryItem.MSG, historyList.get(i).getMessage());
+									mMessage = new MyMessage(
+											historyList.get(i).getFrom(),
+											Utils.Constant.AttachmentType.TEXT,
+											historyList.get(i).getMessage(),
+											null,
+											null
+											);
 								}
 							}
-							history.add(item);
+							history.add(mMessage);
 						}
 						updateHistoryList(true);
 					}
@@ -199,87 +208,81 @@ public class ChatActivity extends Activity {
 	}
 	
 	
-	public void sendMsg(String msg ,String attachment , String attachmentType , byte[] attachmentData) {
-		if (!msg.equals("") && msg != null) {
-			mMsg = msg;
-			mAttachment = attachment;
-			mAttachmentType = attachmentType;
-
-			Set<String> targetIds;
-			targetIds = new HashSet();
-			targetIds.add(targetId);
-			
-			try {
-				if(attachmentType == Utils.Constant.AttachmentType.IMAGE){
-					Log.i("send Binary to " + targetIds, "data: " + attachmentData.length);
-					if (roomType == Utils.Constant.RoomType.CLIENT) {
-						mTA.anIM.sendBinary(targetIds, attachmentData,Utils.Constant.AttachmentType.IMAGE);
-					} else if (roomType == Utils.Constant.RoomType.TOPIC) {
-						mTA.anIM.sendBinaryToTopic(targetId, attachmentData,Utils.Constant.AttachmentType.IMAGE);
-					}
-				}else if(attachmentType.equals("")){
-					Log.i("send Msg to " + targetIds, "message: " + msg);
-					if (roomType == Utils.Constant.RoomType.CLIENT) {
-						mTA.anIM.sendMessage(targetIds, msg);
-					} else if (roomType == Utils.Constant.RoomType.TOPIC) {
-						mTA.anIM.sendMessageToTopic(targetId, msg);
-					}
-				}else{
-					HashMap map = new HashMap();
-					map.put(Utils.Constant.MsgCustomData.DATA, attachment);
-					map.put(Utils.Constant.MsgCustomData.TYPE, attachmentType);
-					Log.i("send Msg to " + targetIds, "message: " + msg);
-					Log.i("send Msg to " + targetIds, "data: " + map);
-					if (roomType == Utils.Constant.RoomType.CLIENT) {
-						mTA.anIM.sendMessage(targetIds, msg,map);
-					} else if (roomType == Utils.Constant.RoomType.TOPIC) {
-						mTA.anIM.sendMessageToTopic(targetId, msg, map);
-					}
+	public void sendMsg(MyMessage mymessage) {
+		
+		String type = mymessage.getType();
+		String msg = mymessage.getMsg();
+		String data = mymessage.getData();
+		byte[] content = mymessage.getContent();
+		
+		Set<String> targetIds;
+		targetIds = new HashSet();
+		targetIds.add(targetId);
+		
+		try {
+			if(type == Utils.Constant.AttachmentType.IMAGE){
+				if (roomType == Utils.Constant.RoomType.CLIENT) {
+					mTA.anIM.sendBinary(targetIds, content,Utils.Constant.AttachmentType.IMAGE);
+				} else if (roomType == Utils.Constant.RoomType.TOPIC) {
+					mTA.anIM.sendBinaryToTopic(targetId, content,Utils.Constant.AttachmentType.IMAGE);
 				}
-			} catch (ArrownockException e) {
+			}else if(type.equals(Utils.Constant.AttachmentType.TEXT)){
+				Log.i("send Msg to " + targetIds, "message: " + msg);
+				if (roomType == Utils.Constant.RoomType.CLIENT) {
+					mTA.anIM.sendMessage(targetIds, msg);
+				} else if (roomType == Utils.Constant.RoomType.TOPIC) {
+					mTA.anIM.sendMessageToTopic(targetId, msg);
+				}
+			}else{
+				HashMap map = new HashMap();
+				map.put(Utils.Constant.MsgCustomData.DATA, data);
+				map.put(Utils.Constant.MsgCustomData.TYPE, type);
+				if (roomType == Utils.Constant.RoomType.CLIENT) {
+					mTA.anIM.sendMessage(targetIds, msg, map);
+				} else if (roomType == Utils.Constant.RoomType.TOPIC) {
+					mTA.anIM.sendMessageToTopic(targetId, msg, map);
+				}
+			}
+		} catch (ArrownockException e) {
 				e.printStackTrace();
 				Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_LONG).show();
 			}
-		}
 	}
 	
 	AnIMCallbackAdapter messagecallback = new AnIMCallbackAdapter() {
 		@Override
-		public void receivedTopicMessage(AnIMTopicMessageCallbackData data) {
-			final String from = data.getFrom();
-			final String fromTopic = data.getTopic();
-			final String message = data.getMessage();
-			final Map<String, String> customData = data.getCustomData();
-			final String customData_data = customData==null?null:customData.get(Utils.Constant.MsgCustomData.DATA);
-			final String customData_type = customData==null?null:customData.get(Utils.Constant.MsgCustomData.TYPE);
-			
-			Log.d("Chat,MessageCallback", "received message: " + message);
-			Log.d("Chat,MessageCallback",
-					"received link: " + customData_data);
-			Log.d("Chat,MessageCallback",
-					"received type: " + customData_type);
-			Log.d("Chat,MessageCallback",
-					fromTopic+","+targetId+","+targetId.equals(fromTopic)+","+(roomType == Utils.Constant.RoomType.TOPIC));
+		public void receivedTopicMessage(AnIMTopicMessageCallbackData callbackData) {
+			final String from = callbackData.getFrom();
+			final String fromTopic = callbackData.getTopic();
+			final String message = callbackData.getMessage();
+			final Map<String, String> customData = callbackData.getCustomData();
+			final String type = customData == null ? 
+					Utils.Constant.AttachmentType.TEXT:customData.get(Utils.Constant.MsgCustomData.TYPE);
+			final String data = customData == null ? 
+					null:customData.get(Utils.Constant.MsgCustomData.DATA);
 			
 			if (roomType == Utils.Constant.RoomType.TOPIC && targetId.equals(fromTopic)) {
 				runOnUiThread(new Runnable() {
 					public void run() {
-						HashMap<String, Object> item = new HashMap<String, Object>();
-						item.put(Utils.Constant.HistoryItem.MSG, message);
-						item.put(Utils.Constant.HistoryItem.FROM, from);
-						if (customData_data!=null)
-							item.put(Utils.Constant.HistoryItem.DATA, customData_data);
-						if (customData_type!=null)
-							item.put(Utils.Constant.HistoryItem.TYPE, customData_type);
-						history.add(item);
+						MyMessage mMessage = new MyMessage(
+								from,
+								type,
+								message,
+								data,
+								null
+								);
+						history.add(mMessage);
 						updateHistoryList(true);
-						
 					}
 				});
 			} else {
 				runOnUiThread(new Runnable() {
 					public void run() {
-						Toast.makeText(getBaseContext(),"["+mTA.mTopicsMap.get(fromTopic)+"] "+mTA.mUsersMap.get(from)+" : "+ message, Toast.LENGTH_LONG).show();
+						if (type.equals(Utils.Constant.AttachmentType.TEXT)){
+							Toast.makeText(getBaseContext(),"["+mTA.mTopicsMap.get(fromTopic)+"] "+mTA.mUsersMap.get(from)+" : " + message, Toast.LENGTH_LONG).show();
+						}else{
+							Toast.makeText(getBaseContext(),"["+mTA.mTopicsMap.get(fromTopic)+"] "+mTA.mUsersMap.get(from)+" : [" + customData.get("type") + "]", Toast.LENGTH_LONG).show();
+						}
 					}
 				});
 			}
@@ -287,41 +290,36 @@ public class ChatActivity extends Activity {
 		}
 
 		@Override
-		public void receivedMessage(AnIMMessageCallbackData data) {
-			final String from = data.getFrom();
-			final String message = data.getMessage();
-			final Map<String, String> customData = data.getCustomData();
-			final String customData_data = customData==null?null:customData.get(Utils.Constant.MsgCustomData.DATA);
-			final String customData_type = customData==null?null:customData.get(Utils.Constant.MsgCustomData.TYPE);
-			Log.d("Chat,MessageCallback", "received message: " + message);
-			Log.d("Chat,MessageCallback",
-					"received link: " + customData_data);
-			Log.d("Chat,MessageCallback",
-					"received type: " + customData_type);
+		public void receivedMessage(AnIMMessageCallbackData callbackData) {
+			final String from = callbackData.getFrom();
+			final String message = callbackData.getMessage();
+			final Map<String, String> customData = callbackData.getCustomData();
+			final String type = customData==null ?
+					Utils.Constant.AttachmentType.TEXT:customData.get(Utils.Constant.MsgCustomData.TYPE);
+			final String data = customData==null ? 
+					null:customData.get(Utils.Constant.MsgCustomData.DATA);
+			
 			if (roomType == Utils.Constant.RoomType.CLIENT && from.equals(targetId)) {
 				runOnUiThread(new Runnable() {
 					public void run() {
-						// Toast.makeText(ChatActivity.this, from + " : " +
-						// message,Toast.LENGTH_LONG).show();
-						HashMap<String, Object> item = new HashMap<String, Object>();
-						item.put("msg", message);
-						item.put("from", from);
-						if (customData_data!=null)
-							item.put(Utils.Constant.HistoryItem.DATA, customData_data);
-						if (customData_type!=null)
-							item.put(Utils.Constant.HistoryItem.TYPE, customData_type);
-
-						history.add(item);
+						MyMessage mMessage = new MyMessage(
+								from,
+								type,
+								message,
+								data,
+								null
+								);
+						history.add(mMessage);
 						updateHistoryList(true);
 					}
 				});
 			} else {
 				runOnUiThread(new Runnable() {
 					public void run() {
-						if (customData_type!=null){
-							Toast.makeText(getBaseContext(),mTA.mUsersMap.get(from)+" : [" + customData.get("type") + "]", Toast.LENGTH_LONG).show();
-						}else{
+						if (type.equals(Utils.Constant.AttachmentType.TEXT)){
 							Toast.makeText(getBaseContext(),mTA.mUsersMap.get(from)+" : " + message, Toast.LENGTH_LONG).show();
+						}else{
+							Toast.makeText(getBaseContext(),mTA.mUsersMap.get(from)+" : [" + customData.get("type") + "]", Toast.LENGTH_LONG).show();
 						}
 					}
 				});
@@ -329,46 +327,50 @@ public class ChatActivity extends Activity {
 		}
 		
 		@Override
-		public void receivedBinary(final AnIMBinaryCallbackData data){
-			if (data.getFrom().equals(targetId)) {
+		public void receivedBinary(final AnIMBinaryCallbackData callbackData){
+			if (roomType == Utils.Constant.RoomType.CLIENT && callbackData.getFrom().equals(targetId)) {
 				runOnUiThread(new Runnable() {
 					public void run() {
-						HashMap<String, Object> item = new HashMap<String, Object>();
-						item.put(Utils.Constant.HistoryItem.FROM, data.getFrom());
-						item.put(Utils.Constant.HistoryItem.TYPE, data.getFileType());
-						item.put(Utils.Constant.HistoryItem.CONTENT, data.getContent());
-						history.add(item);
-						
+						MyMessage mMessage = new MyMessage(
+								callbackData.getFrom(),
+								callbackData.getFileType(),
+								null,
+								null,
+								callbackData.getContent()
+								);
+						history.add(mMessage);
 						updateHistoryList(true);
 					}
 				});
 			}else{
 				runOnUiThread(new Runnable() {
 					public void run() {
-						Toast.makeText(getBaseContext(),mTA.mUsersMap.get(data.getFrom())+" : ["+data.getFileType()+"]", Toast.LENGTH_LONG).show();
+						Toast.makeText(getBaseContext(),mTA.mUsersMap.get(callbackData.getFrom())+" : ["+callbackData.getFileType()+"]", Toast.LENGTH_LONG).show();
 					}
 				});
 			}
 		}
 		
 		@Override
-		public void receivedTopicBinary(final AnIMTopicBinaryCallbackData data){
-			if (data.getTopic().equals(targetId)) {
+		public void receivedTopicBinary(final AnIMTopicBinaryCallbackData callbackData){
+			if (roomType == Utils.Constant.RoomType.TOPIC && callbackData.getTopic().equals(targetId)) {
 				runOnUiThread(new Runnable() {
 					public void run() {
-						HashMap<String, Object> item = new HashMap<String, Object>();
-						item.put(Utils.Constant.HistoryItem.FROM, data.getFrom());
-						item.put(Utils.Constant.HistoryItem.TYPE, data.getFileType());
-						item.put(Utils.Constant.HistoryItem.CONTENT, data.getContent());
-						history.add(item);
-						
+						MyMessage mMessage = new MyMessage(
+								callbackData.getFrom(),
+								callbackData.getFileType(),
+								null,
+								null,
+								callbackData.getContent()
+								);
+						history.add(mMessage);
 						updateHistoryList(true);
 					}
 				});
 			}else{
 				runOnUiThread(new Runnable() {
 					public void run() {
-						Toast.makeText(getBaseContext(),"["+mTA.mTopicsMap.get(data.getTopic())+"] "+mTA.mUsersMap.get(data.getFrom())+" : ["+data.getFileType()+"]", Toast.LENGTH_LONG).show();
+						Toast.makeText(getBaseContext(),"["+mTA.mTopicsMap.get(callbackData.getTopic())+"] "+mTA.mUsersMap.get(callbackData.getFrom())+" : ["+callbackData.getFileType()+"]", Toast.LENGTH_LONG).show();
 					}
 				});
 			}
@@ -385,26 +387,20 @@ public class ChatActivity extends Activity {
 			}else{
 				runOnUiThread(new Runnable() {
 					public void run() {
-						HashMap<String, Object> item = new HashMap<String, Object>();
-						item.put(Utils.Constant.HistoryItem.MSG, mMsg);
-						item.put(Utils.Constant.HistoryItem.FROM, mTA.mClientId);
-						if (!mAttachmentType.equals(""))
-							item.put(Utils.Constant.HistoryItem.TYPE, mAttachmentType);
-						if (!mAttachment.equals(""))
-							item.put(Utils.Constant.HistoryItem.DATA, mAttachment);
-						if(mAttachmentData != null){
-							item.put(Utils.Constant.HistoryItem.CONTENT, mAttachmentData);
-						}
-						history.add(item);
-			
+						MyMessage mMessage = new MyMessage(
+								mTA.mClientId,
+								messageToSend.getType(),
+								messageToSend.getMsg(),
+								messageToSend.getData(),
+								messageToSend.getContent()
+								);
+						history.add(mMessage);
+						
 						InputMethodManager imm = (InputMethodManager) ChatActivity.this
 								.getSystemService(Context.INPUT_METHOD_SERVICE);
 						imm.hideSoftInputFromWindow(textEdit.getWindowToken(), 0);
 						textEdit.setText("");
-						mMsg = "";
-						mAttachment = "";
-						mAttachmentType = "";
-						mAttachmentData = null;
+						messageToSend = new MyMessage();
 						
 						updateHistoryList(true);
 					}
@@ -523,7 +519,14 @@ public class ChatActivity extends Activity {
 		btnSend.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				sendMsg(textEdit.getText().toString().trim(),"","",null);
+				messageToSend = new MyMessage(
+						mTA.mClientId,
+						Utils.Constant.AttachmentType.TEXT,
+						textEdit.getText().toString().trim(),
+						null,
+						null
+						);
+				sendMsg(messageToSend);
 			}
 		});
 		btnMore.setOnClickListener(new OnClickListener() {
@@ -535,44 +538,37 @@ public class ChatActivity extends Activity {
 		
 		Log.i("userId2Name.size",mTA.mUsersMap.size()+"");
 		chatHistory = (ListView) findViewById(R.id.chatHistory);
-		history = new ArrayList<HashMap<String, Object>>();
+		history = new ArrayList<MyMessage>();
 		historyAdapter = new HistoryAdapter(ChatActivity.this, history,mTA.mClientId,mTA.mUsersMap);
 		chatHistory.setAdapter(historyAdapter);
 		chatHistory.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 					public void onItemClick(AdapterView parent, View view,int position, long id) {
-						String data = "";
-						String type = "";
-						byte[] content = null ;
-						if (history.get(position).containsKey(Utils.Constant.HistoryItem.DATA)
-								&& history.get(position).get(Utils.Constant.HistoryItem.DATA) != null) {
-							data = (String) history.get(position).get(Utils.Constant.HistoryItem.DATA);
-						}
-						if (history.get(position).containsKey(Utils.Constant.HistoryItem.CONTENT)
-								&& history.get(position).get(Utils.Constant.HistoryItem.CONTENT) != null) {
-							content = (byte[]) history.get(position).get(Utils.Constant.HistoryItem.CONTENT);
-						}
-						if (history.get(position).containsKey(Utils.Constant.HistoryItem.TYPE)
-								&& history.get(position).get(Utils.Constant.HistoryItem.TYPE) != null) {
-							type = (String) history.get(position).get(Utils.Constant.HistoryItem.TYPE);
-
-							if (type.equals(Utils.Constant.AttachmentType.LOCATION)) {
-								Intent intent = new Intent(Intent.ACTION_VIEW);
-							    intent.setData(Uri.parse("geo:0,0?q="+data+"()"));
-							    if (intent.resolveActivity(getPackageManager()) != null) {
-							        startActivity(intent);
-							    }
-							}else if(type.equals(Utils.Constant.AttachmentType.LINK)){
-								Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(data));
-								startActivity(browserIntent);
-							}else {
-								showContentDialog(type,data,content);
-							} 
+						Log.e("onItemClick",history.get(position).toString());
+						
+						String type = history.get(position).getType();
+						String data = history.get(position).getData();
+						byte[] content = history.get(position).getContent();
+						
+						if (type.equals(Utils.Constant.AttachmentType.LOCATION)) {
+							Intent intent = new Intent(Intent.ACTION_VIEW);
+						    intent.setData(Uri.parse("geo:0,0?q="+data+"()"));
+						    if (intent.resolveActivity(getPackageManager()) != null) {
+						        startActivity(intent);
+						    }
+						}else if(type.equals(Utils.Constant.AttachmentType.LINK)){
+							Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(data));
+							startActivity(browserIntent);
+						}else if(type.equals(Utils.Constant.AttachmentType.TEXT)){
+							
+						}else{
+							showContentDialog(type,data,content);
 						}
 					}
 				});
 	}
 	
 	private void showAttachmentDialog(){
+		messageToSend = new MyMessage();
 		int id =1;
 		AlertDialog.Builder mLoginDialog = new AlertDialog.Builder(this);
 		final LinearLayout mll = new LinearLayout(this);
@@ -630,22 +626,22 @@ public class ChatActivity extends Activity {
 					btnImg.setImageResource(R.drawable.tabicon_image_select);
 					iv.setVisibility(View.VISIBLE);
 					et.setText(R.string.default_img);
-					mAttachmentType = Utils.Constant.AttachmentType.IMAGE;
+					messageToSend.setType(Utils.Constant.AttachmentType.IMAGE);
 					Bitmap bmp = getBmpFromAsset(getString(R.string.default_img));
 					iv.setImageBitmap(bmp);
-					mAttachmentData = convertBmpToByte(bmp);
+					messageToSend.setContent(convertBmpToByte(bmp));
 				}else if(v.getId() == btnLink.getId()){
 					btnLink.setImageResource(R.drawable.tabicon_link_select);
 					et.setText(R.string.default_link);
-					mAttachmentType = Utils.Constant.AttachmentType.LINK;
+					messageToSend.setType(Utils.Constant.AttachmentType.LINK);
 				}else if(v.getId() == btnVideo.getId()){
 					btnVideo.setImageResource(R.drawable.tabicon_video_select);
 					et.setText(R.string.default_video);
-					mAttachmentType = Utils.Constant.AttachmentType.VIDEO;
+					messageToSend.setType(Utils.Constant.AttachmentType.VIDEO);
 				}else if(v.getId() == btnLocation.getId()){
 					btnLocation.setImageResource(R.drawable.tabicon_location);
 					et.setText(R.string.default_latlng);
-					mAttachmentType = Utils.Constant.AttachmentType.LOCATION;
+					messageToSend.setType(Utils.Constant.AttachmentType.LOCATION);
 				}
 			}
 		};
@@ -659,17 +655,14 @@ public class ChatActivity extends Activity {
 		mLoginDialog.setNegativeButton("Cancel",  new DialogInterface.OnClickListener(){
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
-				mMsg = "";
-				mAttachment = "";
-				mAttachmentType = "";
-				mAttachmentData = null;
 			}
 		});
 		mLoginDialog.setPositiveButton("Send",  new DialogInterface.OnClickListener(){
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
-				mAttachment = et.getText().toString();
-				sendMsg(" ",mAttachment,mAttachmentType,mAttachmentData);
+				messageToSend.setData(et.getText().toString());
+				messageToSend.setMsg(" ");
+				sendMsg(messageToSend);
 			}
 		});
 		mLoginDialog.show();
