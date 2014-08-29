@@ -94,11 +94,16 @@ public class FriendsListFragment extends Fragment {
 			mTA.mrm.sendPostRequest(getActivity(), "users/search", params, 
 		        new MRMJSONResponseHandler() {
 		    		@Override
-		            public void onFailure(Throwable e, JSONObject response) {
-		                try {
-		    				Toast.makeText(getActivity(),response.getJSONObject("meta").getString("message"), Toast.LENGTH_LONG).show();
-		                    System.out.println("the error message: " + response.getJSONObject("meta").getString("message"));
-		                } catch (Exception e1) {}
+		            public void onFailure(Throwable e, final JSONObject response) {
+		    			getActivity().runOnUiThread(new Runnable(){
+		    				public void run() {
+		    					try {
+				    				Toast.makeText(getActivity(),response.getJSONObject("meta").getString("message"), Toast.LENGTH_LONG).show();
+				                    System.out.println("the error message: " + response.getJSONObject("meta").getString("message"));
+				                } catch (Exception e1) {}
+		    				}
+		    			});
+		                
 		            }
 		    		@Override
 		    		public void onSuccess(int statusCode, JSONObject response) {
@@ -124,7 +129,9 @@ public class FriendsListFragment extends Fragment {
 		                    
 		                } catch (Exception e) {
 		                	e.printStackTrace();
-		                	Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+		                	try {
+			                	Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+			                } catch (Exception e1) {}
 		                }
 		    		}
 			});

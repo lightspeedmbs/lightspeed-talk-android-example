@@ -417,13 +417,13 @@ public class ChatActivity extends Activity {
 					}
 				});
 			}else{
+				runOnUiThread(new Runnable(){
+					public void run() {
+						Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+					}
+				});
 				if (data.getException().getErrorCode() == ArrownockException.IM_FORCE_CLOSED
 						|| data.getException().getErrorCode() == ArrownockException.IM_FAILED_DISCONNECT) {
-					runOnUiThread(new Runnable(){
-						public void run() {
-							Toast.makeText(getBaseContext(), "Log in by another device", Toast.LENGTH_LONG).show();
-						}
-					});
 					try {
 						mTA.anIM.disconnect();
 					} catch (ArrownockException e1) {
@@ -700,7 +700,7 @@ public class ChatActivity extends Activity {
 	private void showTopicDetailDialog(AnIMGetTopicInfoCallbackData topicInfo){
 		Set<String> parties = topicInfo.getParties();
 		AlertDialog.Builder mLoginDialog = new AlertDialog.Builder(this);
-		mLoginDialog.setTitle("User list");
+		mLoginDialog.setTitle("Member");
 		final String[] partiesArray = new String[parties.size()];
 		int i =0;
 		for(String party : parties){

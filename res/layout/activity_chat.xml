@@ -31,7 +31,7 @@
                 android:layout_gravity="right"
                 android:minHeight="0dp"
                 android:minWidth="0dp"
-                android:text="Info"
+                android:text="Member"
                 android:textColor="#666666"
                 android:textSize="18sp" />
 

@@ -54,7 +54,7 @@ public class MainActivity extends FragmentActivity{
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuItem item = menu.add("Log out");
+		MenuItem item = menu.add("Log Out");
 		item.setOnMenuItemClickListener(new OnMenuItemClickListener() {
 			@Override
 			public boolean onMenuItemClick(MenuItem item) {
@@ -91,7 +91,6 @@ public class MainActivity extends FragmentActivity{
 	 */
 	private void showLoginDialog(){
 		AlertDialog.Builder mLoginDialog = new AlertDialog.Builder(this);
-		mLoginDialog.setTitle("Log in  or  Sign up");
 		final LinearLayout mLl = new LinearLayout(this);
 		mLl.setLayoutParams(new LayoutParams(-1,-1));
 		mLl.setOrientation(LinearLayout.VERTICAL);
@@ -99,7 +98,7 @@ public class MainActivity extends FragmentActivity{
 		final EditText mEditID = new EditText(this);
 		mEditID.setLayoutParams(new LayoutParams(-1,-2));
 		mEditID.setGravity(Gravity.CENTER_HORIZONTAL);
-		mEditID.setHint("User Name");
+		mEditID.setHint("Account Name");
 		mLl.addView(mEditID);
 		final EditText mEditPwd = new EditText(this);
 		mEditPwd.setLayoutParams(new LayoutParams(-1,-2));
@@ -109,13 +108,13 @@ public class MainActivity extends FragmentActivity{
 		mLl.addView(mEditPwd);
 		mLoginDialog.setView(mLl);
 		mLoginDialog.setCancelable(false);
-		mLoginDialog.setPositiveButton("Sign up", new DialogInterface.OnClickListener(){
+		mLoginDialog.setPositiveButton("Sign Up", new DialogInterface.OnClickListener(){
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
 				loginSignup(mEditID.getText().toString(),mEditPwd.getText().toString(),"users/create");
 			}
 		});
-		mLoginDialog.setNegativeButton("Log in",  new DialogInterface.OnClickListener(){
+		mLoginDialog.setNegativeButton("Log In",  new DialogInterface.OnClickListener(){
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
 				loginSignup(mEditID.getText().toString(),mEditPwd.getText().toString(),"users/login");

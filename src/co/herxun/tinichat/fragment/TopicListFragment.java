@@ -109,10 +109,10 @@ public class TopicListFragment extends Fragment {
 			final EditText editText = new EditText(getActivity());
 			editText.setPadding(30, 30, 30, 30);
 			editText.setGravity(Gravity.CENTER);
-			editText.setHint("Topic Name");
+			editText.setHint("New Topic Name");
 			adb.setView(editText);
 			adb.setNegativeButton("Cancel", null);
-			adb.setPositiveButton("Create", new DialogInterface.OnClickListener(){
+			adb.setPositiveButton("OK", new DialogInterface.OnClickListener(){
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
 					try {

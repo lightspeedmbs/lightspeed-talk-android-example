@@ -15,10 +15,13 @@
 
     <application
         android:name="co.herxun.tinichat.TinichatApplication"
-        android:allowBackup="true"
         android:icon="@drawable/appicon"
         android:label="@string/app_name"
-        android:theme="@android:style/Theme.Holo.Light">
+        android:theme="@android:style/Theme.Holo.Light"
+        android:allowBackup="true"
+        android:vmSafeMode="true"       
+        android:allowClearUserData="true"
+        android:hardwareAccelerated="true" >
 
         <meta-data
             android:name="com.arrownock.APP_KEY"
