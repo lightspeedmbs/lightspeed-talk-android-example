@@ -16,7 +16,7 @@
     <application
         android:name="co.herxun.tinichat.TinichatApplication"
         android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@drawable/appicon"
         android:label="@string/app_name"
         android:theme="@android:style/Theme.Holo.Light">
 
