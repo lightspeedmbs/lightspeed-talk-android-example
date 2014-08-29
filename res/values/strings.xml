@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tinichat</string>
+ 	<string name="app_key">NnCm2dtNc76pA2nDE0PezZZFMo5tDMeD</string> 
+ 	<string name="default_img">spaceman.png</string> 
+ 	<string name="default_link">http://www.lightspeedmbs.com/</string> 
+ 	<string name="default_video">http://testking.omyapps.com.s3.amazonaws.com/demo01.MP4</string> 
+ 	<string name="default_latlng">25.070169,121.59308</string> 
+</resources>
