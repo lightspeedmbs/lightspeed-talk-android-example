@@ -67,6 +67,7 @@ public class MainActivity extends FragmentActivity{
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		Log.e("onCreate","!!!");
 		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.activity_main);
 		
@@ -286,41 +287,19 @@ public class MainActivity extends FragmentActivity{
 		}
 		
 		@Override
-		public void receivedTopicMessage(AnIMTopicMessageCallbackData data) {
-			final String from = data.getFrom();
-			final String fromTopic = data.getTopic();
-			final String message = data.getMessage();
-			final Map<String, String> customData = data.getCustomData();
-			Log.d("Chat,MessageCallback", "received message: " + message);
-			Log.d("Chat,MessageCallback","received link: " + customData.get("link"));
-			Log.d("Chat,MessageCallback","received type: " + customData.get("type"));
-			
-			runOnUiThread(new Runnable() {
-				public void run() {
-					if (customData.containsKey("type")&& !customData.get("type").equals("")){
-						Toast.makeText(getBaseContext(),"["+mTA.mTopicsMap.get(fromTopic)+"] "+mTA.mUsersMap.get(from)+" : [" + customData.get("type") + "]", Toast.LENGTH_LONG).show();
-					}else{
-						Toast.makeText(getBaseContext(),"["+mTA.mTopicsMap.get(fromTopic)+"] "+mTA.mUsersMap.get(from)+" : "+ message, Toast.LENGTH_LONG).show();
-					}
-				}
-			});
-
-		}
-
-		@Override
 		public void receivedMessage(AnIMMessageCallbackData data) {
 			final String from = data.getFrom();
 			final String message = data.getMessage();
 			final Map<String, String> customData = data.getCustomData();
+			final String type = customData==null ?
+					Utils.Constant.AttachmentType.TEXT:customData.get(Utils.Constant.MsgCustomData.TYPE);
 			Log.d("Chat,MessageCallback", "received message: " + message);
-			Log.d("Chat,MessageCallback", "received link: " + customData.get("link"));
-			Log.d("Chat,MessageCallback", "received type: " + customData.get("type"));
 			runOnUiThread(new Runnable() {
 				public void run() {
-					if (customData.containsKey("type")&& !customData.get("type").equals("")){
-						Toast.makeText(getBaseContext(),mTA.mUsersMap.get(from)+" : [" + customData.get("type") + "]", Toast.LENGTH_LONG).show();
-					}else{
+					if (type.equals(Utils.Constant.AttachmentType.TEXT)){
 						Toast.makeText(getBaseContext(),mTA.mUsersMap.get(from)+" : " + message, Toast.LENGTH_LONG).show();
+					}else{
+						Toast.makeText(getBaseContext(),mTA.mUsersMap.get(from)+" : [" + type + "]", Toast.LENGTH_LONG).show();
 					}
 				} 
 			});
