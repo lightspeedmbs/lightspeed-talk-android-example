@@ -2,35 +2,14 @@ package co.herxun.tinichat.fragment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.arrownock.exception.ArrownockException;
-import com.arrownock.im.callback.AnIMCallbackAdapter;
-import com.arrownock.im.callback.AnIMGetClientIdCallbackData;
-import com.arrownock.im.callback.AnIMGetClientsStatusCallbackData;
-import com.arrownock.im.callback.AnIMGetTopicListCallbackData;
-import com.arrownock.im.callback.AnIMMessageCallbackData;
-import com.arrownock.im.callback.AnIMStatusUpdateCallbackData;
-import com.arrownock.im.callback.AnIMTopicMessageCallbackData;
-import com.arrownock.mrm.MRMJSONResponseHandler;
-
-import co.herxun.tinichat.R;
-import co.herxun.tinichat.Utils;
-import co.herxun.tinichat.R.layout;
-import co.herxun.tinichat.activity.ChatActivity;
-import co.herxun.tinichat.activity.MainActivity;
-import co.herxun.tinichat.TinichatApplication;
-import android.support.v4.app.Fragment;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
+import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -39,6 +18,15 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.Toast;
+import co.herxun.tinichat.R;
+import co.herxun.tinichat.TinichatApplication;
+import co.herxun.tinichat.Utils;
+import co.herxun.tinichat.activity.ChatActivity;
+
+import com.arrownock.exception.ArrownockException;
+import com.arrownock.im.callback.AnIMGetClientsStatusCallbackData;
+import com.arrownock.social.AnSocialMethod;
+import com.arrownock.social.IAnSocialCallback;
 
 public class FriendsListFragment extends Fragment {
 	private TinichatApplication mTA;
@@ -87,55 +75,67 @@ public class FriendsListFragment extends Fragment {
 		t.start();
 	}
 	
-	private void getAllUsersList(){
+	private void getAllUsersList() {
+		final Map<String, Object> params = new HashMap<String, Object>();
+		params.put("limit", 100);
 		try {
-		JSONObject params = new JSONObject();
-		params.put("pagesize", 100);
-			mTA.mrm.sendPostRequest(getActivity(), "users/search", params, 
-		        new MRMJSONResponseHandler() {
-		    		@Override
-		            public void onFailure(Throwable e, final JSONObject response) {
-		    			getActivity().runOnUiThread(new Runnable(){
-		    				public void run() {
-		    					try {
-				    				Toast.makeText(getActivity(),response.getJSONObject("meta").getString("message"), Toast.LENGTH_LONG).show();
-				                    System.out.println("the error message: " + response.getJSONObject("meta").getString("message"));
-				                } catch (Exception e1) {}
-		    				}
-		    			});
-		                
-		            }
-		    		@Override
-		    		public void onSuccess(int statusCode, JSONObject response) {
-		    			try {
-		                    JSONArray usersArray = response.getJSONObject("response").getJSONArray("users");		               
-		                    mTA.mUsersMap.clear();
-		                    partiesList.clear();
-		                    for (int i = 0; i < usersArray.length(); i++) {
-		                        JSONObject user = (JSONObject) usersArray.get(i);
-		                        if(user.getString("id").equals(mTA.mCircleId)){
-		                        	continue;
-		                        }
-		                        HashMap<String, String> item = new HashMap<String, String>();
-		            			item.put("clientId", (String) user.getJSONObject("customFields").getString("clientId"));
-		            			item.put("username", (String) user.get("username"));
-		            			item.put("status", "Offline");
-		            			partiesList.add(item);		
-		            			
-		            			mTA.mUsersMap.put((String) user.getJSONObject("customFields").getString("clientId"),  (String) user.get("username"));
-		                    }
-		                    
-		                    mTA.anIM.getClientsStatus(mTA.mUsersMap.keySet());
-		                    
-		                } catch (Exception e) {
-		                	e.printStackTrace();
-		                	try {
-			                	Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
-			                } catch (Exception e1) {}
-		                }
-		    		}
-			});
-		} catch (Exception e) {
+			mTA.anSocial.sendRequest("users/query.json", AnSocialMethod.GET,
+					params, new IAnSocialCallback() {
+						@Override
+						public void onFailure(final JSONObject arg0) {
+							getActivity().runOnUiThread(new Runnable() {
+								public void run() {
+									try {
+										Toast.makeText(	getActivity(),arg0.getJSONObject("meta").getString("message"),Toast.LENGTH_LONG).show();
+										System.out.println("the error message: "+ arg0.getJSONObject("meta").getString("message"));
+									} catch (Exception e1) {
+									}
+								}
+							});
+						}
+
+						@Override
+						public void onSuccess(final JSONObject arg0) {
+							Log.e("getAllUsersList", arg0.toString());
+							try {
+								JSONArray usersArray = arg0.getJSONObject("response").getJSONArray("users");
+								mTA.mUsersMap.clear();
+								partiesList.clear();
+								for (int i = 0; i < usersArray.length(); i++) {
+
+									try {
+										JSONObject user = (JSONObject) usersArray.get(i);
+										if (user.getString("id").equals(mTA.mCircleId)) {
+											continue;
+										}
+										HashMap<String, String> item = new HashMap<String, String>();
+										item.put("clientId",user.getString("clientId"));
+										item.put("username",user.getString("username"));
+										item.put("status", "Offline");
+										partiesList.add(item);
+
+										mTA.mUsersMap.put(user.getString("clientId"),user.getString("username"));
+									} catch (Exception e) {
+										e.printStackTrace();
+										try {
+											Toast.makeText(getActivity(),e.getMessage(),Toast.LENGTH_LONG).show();
+										} catch (Exception e1) {
+										}
+									}
+								}
+
+								mTA.anIM.getClientsStatus(mTA.mUsersMap.keySet());
+
+							} catch (Exception e) {
+								e.printStackTrace();
+								try {
+									Toast.makeText(getActivity(),e.getMessage(), Toast.LENGTH_LONG).show();
+								} catch (Exception e1) {
+								}
+							}
+						}
+					});
+		} catch (ArrownockException e) {
 			e.printStackTrace();
 		}
 	}

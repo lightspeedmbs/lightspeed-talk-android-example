@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.arrownock.exception.ArrownockException;
 import com.arrownock.im.AnIM;
-import com.arrownock.mrm.MRM;
+import com.arrownock.social.AnSocial;
 
 import android.app.Application;
 import android.content.Context;
@@ -17,7 +17,7 @@ import android.util.Log;
 public class TinichatApplication extends Application {
 	
 	public AnIM anIM;	/** Lightspeed Talk component */
-	public MRM mrm;		/** Lightspeed Social component */
+	public AnSocial anSocial;		/** Lightspeed Social component */
 	
 	public String mClientId;
 	public String mUsername;
@@ -31,7 +31,7 @@ public class TinichatApplication extends Application {
 	public void init() {
 		try {
 			anIM = new AnIM(this);
-			mrm = new MRM(this);
+			anSocial = new AnSocial(this, getString(R.string.app_key));
 			mUsersMap = new HashMap<String,String>();
 			mTopicsMap = new HashMap<String,String>();
 		} catch (ArrownockException e) {

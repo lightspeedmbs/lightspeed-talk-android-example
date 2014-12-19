@@ -1,20 +1,25 @@
 package co.herxun.tinichat.activity;
 
+import java.util.HashMap;
 import java.util.Map;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.app.ActionBar;
-import android.app.ActionBar.Tab;
-import android.app.ActionBar.TabListener;
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.FragmentTransaction;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.ActionBar.Tab;
+import android.support.v7.app.ActionBar.TabListener;
+import android.support.v7.app.ActionBarActivity;
 import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
 import android.view.Gravity;
@@ -45,9 +50,10 @@ import com.arrownock.im.callback.AnIMMessageCallbackData;
 import com.arrownock.im.callback.AnIMStatusUpdateCallbackData;
 import com.arrownock.im.callback.AnIMTopicBinaryCallbackData;
 import com.arrownock.im.callback.AnIMTopicMessageCallbackData;
-import com.arrownock.mrm.MRMJSONResponseHandler;
+import com.arrownock.social.AnSocialMethod;
+import com.arrownock.social.IAnSocialCallback;
 
-public class MainActivity extends FragmentActivity{
+public class MainActivity extends ActionBarActivity{
 	private AppSectionsPagerAdapter mAppSectionsPagerAdapter;
 	private ViewPager mViewPager;
 	private TinichatApplication mTA;
@@ -67,7 +73,6 @@ public class MainActivity extends FragmentActivity{
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		Log.e("onCreate","!!!");
 		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.activity_main);
 		
@@ -112,13 +117,13 @@ public class MainActivity extends FragmentActivity{
 		mLoginDialog.setPositiveButton("Sign Up", new DialogInterface.OnClickListener(){
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
-				loginSignup(mEditID.getText().toString(),mEditPwd.getText().toString(),"users/create");
+				signUp(mEditID.getText().toString(),mEditPwd.getText().toString());
 			}
 		});
 		mLoginDialog.setNegativeButton("Log In",  new DialogInterface.OnClickListener(){
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
-				loginSignup(mEditID.getText().toString(),mEditPwd.getText().toString(),"users/login");
+				login(mEditID.getText().toString(),mEditPwd.getText().toString());
 			}
 		});
 		mLoginDialog.show();
@@ -129,82 +134,76 @@ public class MainActivity extends FragmentActivity{
 	 * @param pwd Password
 	 * @param action Log in "users/login" ; Register "users/create"
 	 */
-	private void loginSignup(final String username,final String pwd,final String action){
+	private void login(final String username,final String pwd){
+		final Map<String, Object> params = new HashMap<String, Object>();
+	    params.put("username", username);
+	    params.put("password", pwd); 
 		try {
-		    JSONObject params = new JSONObject();
-		    params.put("username", username);
-		    params.put("password", pwd); 
-		    
-		    mTA.mrm.sendPostRequest(getBaseContext(), action, params,
-		        new MRMJSONResponseHandler() {
-		            @Override
-		            public void onFailure(Throwable e, JSONObject response) {
-		                try {
-		                	String errorMsg = response.getJSONObject("meta").getString("message");
+			mTA.anSocial.sendRequest("users/auth.json", AnSocialMethod.POST, params, new IAnSocialCallback(){
+				@Override
+				public void onFailure(JSONObject arg0) {
+					 try {
+		                	String errorMsg = arg0.getJSONObject("meta").getString("message");
 		                	Toast.makeText(getBaseContext(), errorMsg, Toast.LENGTH_LONG).show();
 		                    System.out.println("the error message: " + errorMsg);
 		                    showLoginDialog();
 		                } catch (Exception e1) {}
-		            }
-		            @Override
-		            public void onSuccess(int statusCode, JSONObject response) {
-		                try {
-		                	String circleId = response.getJSONObject("response").getJSONObject("user").getString("id");
-		                    System.out.println("user id is: " + circleId);
-		                    if(action.equals("users/create")){
-		                    	loginSignup(username,pwd,"users/login");
-		                    }else if(action.equals("users/login")){
-		                    	mTA.mUsername = username;
-		                    	mTA.mCircleId = circleId;
-		                    	mTA.anIM.getClientId(circleId);
-		                    }else{
-		                    }
-		                } catch (Exception e1) {}
-		            }
-		    });
-
-		} catch (Exception e) {
-
-		}  
+				}
+				@Override
+				public void onSuccess(final JSONObject arg0) {
+					Log.e("login",arg0.toString());
+	                try {
+	                	String userId = arg0.getJSONObject("response").getJSONObject("user").getString("id");
+	                	String userName = arg0.getJSONObject("response").getJSONObject("user").getString("username");
+	                	String clientId = arg0.getJSONObject("response").getJSONObject("user").getString("clientId");
+	                    System.out.println("user id is: " + userId);
+                    	mTA.mUsername = userName;
+                    	mTA.mCircleId = userId;
+                    	mTA.mClientId = clientId;
+                    	afterLogin();
+	                } catch (Exception e1) {}
+				}
+			});
+		} catch (ArrownockException e) {
+			e.printStackTrace();
+		}
 	}
 	
-	/**
-	 * Update clientId to Lightspeed Social database
-	 */
-	private void updateUser(final String circleId,final String clientID){
+	private void signUp(final String username,final String pwd){
+		final Map<String, Object> params = new HashMap<String, Object>();
+	    params.put("username", username);
+	    params.put("password", pwd); 
+	    params.put("password_confirmation", pwd); 
+	    params.put("enable_im", true); 
 		try {
-		    JSONObject params = new JSONObject();
-		    params.put("id",circleId);
-		    JSONObject customFields = new JSONObject();
-		    customFields.put("clientId",clientID);
-		    params.put("customFields",customFields);
-		    
-		    mTA.mrm.sendPostRequest(getBaseContext(), "users/update", params,
-		        new MRMJSONResponseHandler() {
-		            @Override
-		            public void onFailure(Throwable e, JSONObject response) {
-		                try {
-		                	String errorMsg = response.getJSONObject("meta").getString("message");
+			mTA.anSocial.sendRequest("users/create.json", AnSocialMethod.POST, params, new IAnSocialCallback(){
+				@Override
+				public void onFailure(JSONObject arg0) {
+					 try {
+		                	String errorMsg = arg0.getJSONObject("meta").getString("message");
 		                	Toast.makeText(getBaseContext(), errorMsg, Toast.LENGTH_LONG).show();
 		                    System.out.println("the error message: " + errorMsg);
+		                    showLoginDialog();
 		                } catch (Exception e1) {}
-		            }
-		            @Override
-		            public void onSuccess(int statusCode, JSONObject response) {
-		                try {
-		                    System.out.println("updateUser: " + response.getJSONObject("response").getJSONObject("user").toString());
-		                    runOnUiThread(new Runnable(){
-								public void run() {
-				                    afterLogin();
-								}
-							});
-		                } catch (Exception e1) {}
-		            }
-		    });
-
-		} catch (Exception e) {
-
-		}  
+				}
+				@Override
+				public void onSuccess(final JSONObject arg0) {
+					Log.e("signUp",arg0.toString());
+	                try {
+	                	String userId = arg0.getJSONObject("response").getJSONObject("user").getString("id");
+	                	String userName = arg0.getJSONObject("response").getJSONObject("user").getString("username");
+	                	String clientId = arg0.getJSONObject("response").getJSONObject("user").getString("clientId");
+	                    System.out.println("user id is: " + userId);
+                    	mTA.mUsername = userName;
+                    	mTA.mCircleId = userId;
+                    	mTA.mClientId = clientId;
+                    	afterLogin();
+	                } catch (Exception e1) {}
+				}
+			});
+		} catch (ArrownockException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -215,7 +214,7 @@ public class MainActivity extends FragmentActivity{
 	 */
 	private void afterLogin(){
 		mAppSectionsPagerAdapter = new AppSectionsPagerAdapter(getSupportFragmentManager());
-		final ActionBar actionBar = getActionBar();
+		final ActionBar actionBar = getSupportActionBar();
 		actionBar.show();
 		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 		mViewPager = (ViewPager) findViewById(R.id.pager);
@@ -233,12 +232,12 @@ public class MainActivity extends FragmentActivity{
 			actionBar.addTab(actionBar.newTab()
 					.setText(mAppSectionsPagerAdapter.getPageTitle(i))
 					.setTabListener(new TabListener(){
+						public void onTabUnselected(Tab arg0,FragmentTransaction arg1) {}
+						public void onTabReselected(Tab arg0,FragmentTransaction arg1) {}
 						@Override
-						public void onTabSelected(Tab tab,FragmentTransaction ft) {
+						public void onTabSelected(Tab tab,FragmentTransaction arg1) {
 							mViewPager.setCurrentItem(tab.getPosition());
 						}
-						public void onTabUnselected(Tab tab,FragmentTransaction ft) {}
-						public void onTabReselected(Tab tab,FragmentTransaction ft) {}
 					}));
 		}
 		try {
@@ -251,19 +250,7 @@ public class MainActivity extends FragmentActivity{
 	
 	private AnIMCallbackAdapter mAnIMCallback = new AnIMCallbackAdapter() {
 		@Override
-		public void getClientId(final AnIMGetClientIdCallbackData data) {
-			if(data.isError()){
-				runOnUiThread(new Runnable(){
-					public void run() {
-						Toast.makeText(getBaseContext(), data.getException().getMessage(), Toast.LENGTH_LONG).show();
-					}
-				});
-			}else{
-				mTA.mClientId= data.getClientId();
-				updateUser(mTA.mCircleId,mTA.mClientId);
-			}
-			
-		}
+		public void getClientId(final AnIMGetClientIdCallbackData data) {}
 		
 		@Override
 		public void getClientsStatus(final AnIMGetClientsStatusCallbackData data){
@@ -349,7 +336,6 @@ public class MainActivity extends FragmentActivity{
 
 	private void logout() {
 		try {
-			mTA.mrm.sendPostRequest(getBaseContext(), "users/logout", null,new MRMJSONResponseHandler());
 			mTA.anIM.disconnect();
 		} catch (ArrownockException e) {
 			e.printStackTrace();

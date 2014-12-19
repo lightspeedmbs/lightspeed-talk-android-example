@@ -698,26 +698,38 @@ public class ChatActivity extends Activity {
 	}
 	
 	private void showTopicDetailDialog(AnIMGetTopicInfoCallbackData topicInfo){
+		if(topicInfo.isError()){
+			topicInfo.getException().printStackTrace();
+			return;
+		}
+		Log.e("mTA.mUsersMap",mTA.mUsersMap.toString());
+		
 		Set<String> parties = topicInfo.getParties();
 		AlertDialog.Builder mLoginDialog = new AlertDialog.Builder(this);
+		
 		mLoginDialog.setTitle("Member");
-		final String[] partiesArray = new String[parties.size()];
-		int i =0;
+		ArrayList<String> partyList = new ArrayList<String>();
 		for(String party : parties){
-			if(mTA.mUsersMap.get(party)==null){
-				if(party .equals(mTA.mClientId)){
-					partiesArray[i++] = mTA.mUsername;
+			if(mTA.mUsersMap!=null){
+				if(!mTA.mUsersMap.containsKey(party)){
+					if(party .equals(mTA.mClientId)){
+						partyList.add(mTA.mUsername);
+					}
+				}else{
+					partyList.add(mTA.mUsersMap.get(party));
 				}
-			}else{
-				partiesArray[i++] = mTA.mUsersMap.get(party);
 			}
 		}
+		final String[] partiesArray = new String[partyList.size()];
+		for(int i =0;i<partiesArray.length;i++){
+			partiesArray[i] = partyList.get(i);
+		}
+		
 		mLoginDialog.setItems(partiesArray, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 Toast.makeText(getBaseContext(), partiesArray[which],Toast.LENGTH_LONG).show();
             }
         });
-
 		mLoginDialog.setNegativeButton("Close",  new DialogInterface.OnClickListener(){
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
