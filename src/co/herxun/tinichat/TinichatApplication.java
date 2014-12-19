@@ -35,7 +35,7 @@ public class TinichatApplication extends Application {
 			mUsersMap = new HashMap<String,String>();
 			mTopicsMap = new HashMap<String,String>();
 		} catch (ArrownockException e) {
-			Log.e("TinichatApplication", e.getMessage());
+			throw new RuntimeException(e.getMessage());
 		}
 		
 	}
