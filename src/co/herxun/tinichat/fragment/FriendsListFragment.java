@@ -78,6 +78,7 @@ public class FriendsListFragment extends Fragment {
 	private void getAllUsersList() {
 		final Map<String, Object> params = new HashMap<String, Object>();
 		params.put("limit", 100);
+		params.put("sort", "-created_at");
 		try {
 			mTA.anSocial.sendRequest("users/query.json", AnSocialMethod.GET,
 					params, new IAnSocialCallback() {
@@ -98,33 +99,40 @@ public class FriendsListFragment extends Fragment {
 						public void onSuccess(final JSONObject arg0) {
 							Log.e("getAllUsersList", arg0.toString());
 							try {
-								JSONArray usersArray = arg0.getJSONObject("response").getJSONArray("users");
-								mTA.mUsersMap.clear();
-								partiesList.clear();
-								for (int i = 0; i < usersArray.length(); i++) {
-
-									try {
-										JSONObject user = (JSONObject) usersArray.get(i);
-										if (user.getString("id").equals(mTA.mCircleId)) {
-											continue;
+								final JSONArray usersArray = arg0.getJSONObject("response").getJSONArray("users");
+								getActivity().runOnUiThread(new Runnable() {
+									public void run() {
+										mTA.mUsersMap.clear();
+										partiesList.clear();
+										friendsListAdapter.notifyDataSetChanged();
+										for (int i = 0; i < usersArray.length(); i++) {
+											try {
+												JSONObject user = (JSONObject) usersArray.get(i);
+												if (user.getString("id").equals(mTA.mCircleId)) {
+													continue;
+												}
+												HashMap<String, String> item = new HashMap<String, String>();
+												item.put("clientId",user.getString("clientId"));
+												item.put("username",user.getString("username"));
+												item.put("status", "Offline");
+												partiesList.add(item);
+												
+												friendsListAdapter.notifyDataSetChanged();
+												
+												mTA.mUsersMap.put(user.getString("clientId"),user.getString("username"));
+											} catch (Exception e) {
+												e.printStackTrace();
+											}
 										}
-										HashMap<String, String> item = new HashMap<String, String>();
-										item.put("clientId",user.getString("clientId"));
-										item.put("username",user.getString("username"));
-										item.put("status", "Offline");
-										partiesList.add(item);
-
-										mTA.mUsersMap.put(user.getString("clientId"),user.getString("username"));
-									} catch (Exception e) {
-										e.printStackTrace();
 										try {
-											Toast.makeText(getActivity(),e.getMessage(),Toast.LENGTH_LONG).show();
-										} catch (Exception e1) {
+											mTA.anIM.getClientsStatus(mTA.mUsersMap.keySet());
+										} catch (ArrownockException e) {
+											// TODO Auto-generated catch block
+											e.printStackTrace();
 										}
 									}
-								}
-
-								mTA.anIM.getClientsStatus(mTA.mUsersMap.keySet());
+								});
+								
 
 							} catch (Exception e) {
 								e.printStackTrace();
@@ -150,22 +158,23 @@ public class FriendsListFragment extends Fragment {
 					Toast.makeText(getActivity(), data.getException().getMessage(), Toast.LENGTH_LONG).show();
 				}
 			});
+		}else{
+			getActivity().runOnUiThread(new Runnable(){
+				public void run() {
+					Map<String,Boolean> clientStatusMap = data.getClientsStatus();
+					for(int i=0;i<partiesList.size();i++){
+						HashMap<String,String> user = partiesList.get(i);
+						if(clientStatusMap.containsKey(user.get("clientId"))){
+							user.remove("status");
+							user.put("status", clientStatusMap.get(user.get("clientId")) ? "Online":"Offline");
+							partiesList.remove(i);
+							partiesList.add(i, user);
+							friendsListAdapter.notifyDataSetChanged();
+						}
+					}
+					getActivity().setProgressBarIndeterminateVisibility(false);
+				}
+			});
 		}
-		Map<String,Boolean> clientStatusMap = data.getClientsStatus();
-		for(int i=0;i<partiesList.size();i++){
-			HashMap<String,String> user = partiesList.get(i);
-			if(clientStatusMap.containsKey(user.get("clientId"))){
-				user.remove("status");
-				user.put("status", clientStatusMap.get(user.get("clientId")) ? "Online":"Offline");
-				partiesList.remove(i);
-				partiesList.add(i, user);
-			}
-		}
-		getActivity().runOnUiThread(new Runnable(){
-			public void run() {
-				friendsListAdapter.notifyDataSetChanged();
-				getActivity().setProgressBarIndeterminateVisibility(false);
-			}
-		});
 	}
 }
