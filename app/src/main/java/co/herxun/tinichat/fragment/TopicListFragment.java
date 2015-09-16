@@ -36,6 +36,8 @@ import com.arrownock.exception.ArrownockException;
 import com.arrownock.im.callback.AnIMAddClientsCallbackData;
 import com.arrownock.im.callback.AnIMCreateTopicCallbackData;
 import com.arrownock.im.callback.AnIMGetTopicListCallbackData;
+import com.arrownock.im.callback.IAnIMGetTopicListCallback;
+import com.arrownock.im.callback.IAnIMTopicCallback;
 
 public class TopicListFragment extends Fragment {
 	private TinichatApplication mTA;
@@ -62,18 +64,20 @@ public class TopicListFragment extends Fragment {
 			friendsListView.setAdapter(topicsListAdapter);
 			friendsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 				public void onItemClick(AdapterView parent, View view, int position,long id) {
-					intent = new Intent();
 					String itemId = topicsList.get(position).get("id");
-					intent.putExtra("targetId", itemId);
-					intent.putExtra("type", Utils.Constant.RoomType.TOPIC);
-					intent.setClass(getActivity(), ChatActivity.class);
 					Set<String> userSet = new HashSet<String>();
 					userSet.add(mTA.mClientId);
-					try {
-						mTA.anIM.addClientsToTopic(itemId,userSet);
-					} catch (ArrownockException e) {
-						e.printStackTrace();
-					}
+					mTA.anIM.addClientsToTopic(itemId, userSet, new IAnIMTopicCallback() {
+						@Override
+						public void onSuccess(String topicId, long createdTimestamp, long updatedTimestamp) {
+							addClientsToTopic(topicId);
+						}
+
+						@Override
+						public void onError(ArrownockException e) {
+							e.printStackTrace();
+						}
+					});
 				}
 			});
 			
@@ -84,25 +88,37 @@ public class TopicListFragment extends Fragment {
 					showTopicCreateDialog();
 				}
 			});
-			
-			try {
-				mTA.anIM.getTopicList();
-			} catch (ArrownockException e) {
-				e.printStackTrace();
-				Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
-			}
+
+			mTA.anIM.getTopicList(new IAnIMGetTopicListCallback() {
+				@Override
+				public void onSuccess(AnIMGetTopicListCallbackData anIMGetTopicListCallbackData) {
+					getTopicList(anIMGetTopicListCallbackData);
+				}
+
+				@Override
+				public void onError(ArrownockException e) {
+					e.printStackTrace();
+					Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+				}
+			});
 		}
 		
 		@Override
 		public void onResume(){
 			super.onResume();
 			getActivity().setProgressBarIndeterminateVisibility(true);
-			try {
-				mTA.anIM.getTopicList();
-			} catch (ArrownockException e) {
-				e.printStackTrace();
-				Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
-			}
+			mTA.anIM.getTopicList(new IAnIMGetTopicListCallback() {
+				@Override
+				public void onSuccess(AnIMGetTopicListCallbackData anIMGetTopicListCallbackData) {
+					getTopicList(anIMGetTopicListCallbackData);
+				}
+
+				@Override
+				public void onError(ArrownockException e) {
+					e.printStackTrace();
+					Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+				}
+			});
 		}
 		private void showTopicCreateDialog(){
 			AlertDialog.Builder adb = new AlertDialog.Builder(getActivity());
@@ -115,25 +131,30 @@ public class TopicListFragment extends Fragment {
 			adb.setPositiveButton("OK", new DialogInterface.OnClickListener(){
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
-					try {
-						mTA.anIM.createTopic(editText.getText().toString());
-					} catch (ArrownockException e) {
-						e.printStackTrace();
-						Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
-					}
-					
+					mTA.anIM.createTopic(editText.getText().toString(), new IAnIMTopicCallback() {
+						@Override
+						public void onSuccess(String topicId, long createdTimestamp, long updatedTimestamp) {
+							createTopic(topicId);
+						}
+
+						@Override
+						public void onError(ArrownockException e) {
+							e.printStackTrace();
+							Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+						}
+					});
 				}
 			});
 			adb.show();
 			
 		}
 		
-		public void addClientsToTopic(AnIMAddClientsCallbackData data){
-			if(data.getException()!=null){
-				Log.e("addClientsToTopic",data.getException().getMessage());
-			}else{
-				startActivity(intent);
-			}
+		public void addClientsToTopic(String topicId){
+			intent = new Intent();
+			intent.putExtra("targetId", topicId);
+			intent.putExtra("type", Utils.Constant.RoomType.TOPIC);
+			intent.setClass(getActivity(), ChatActivity.class);
+			startActivity(intent);
 		}
 		
 		public void getTopicList(final AnIMGetTopicListCallbackData data){
@@ -169,22 +190,13 @@ public class TopicListFragment extends Fragment {
 			});
 		}
 		
-		public void createTopic(final AnIMCreateTopicCallbackData data){
-			if(data.isError()){
-				getActivity().runOnUiThread(new Runnable(){
-					public void run() {
-						Toast.makeText(getActivity(), data.getException().getMessage(), Toast.LENGTH_LONG).show();
-					}
-				});
-			}else{
-				Log.e("data.getTopic()",data.getTopic());
-				
-				Intent i = new Intent();
-				i.putExtra("targetId", data.getTopic());
-				i.putExtra("type", Utils.Constant.RoomType.TOPIC);
-				i.setClass(getActivity(), ChatActivity.class);
-				startActivity(i);
-				
-			}
+		public void createTopic(String topicId){
+			Log.e("topicId", topicId);
+
+			Intent i = new Intent();
+			i.putExtra("targetId", topicId);
+			i.putExtra("type", Utils.Constant.RoomType.TOPIC);
+			i.setClass(getActivity(), ChatActivity.class);
+			startActivity(i);
 		}
 	}

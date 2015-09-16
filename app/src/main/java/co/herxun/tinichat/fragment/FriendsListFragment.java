@@ -25,6 +25,7 @@ import co.herxun.tinichat.activity.ChatActivity;
 
 import com.arrownock.exception.ArrownockException;
 import com.arrownock.im.callback.AnIMGetClientsStatusCallbackData;
+import com.arrownock.im.callback.IAnIMGetClientsStatusCallback;
 import com.arrownock.social.AnSocialMethod;
 import com.arrownock.social.IAnSocialCallback;
 
@@ -52,7 +53,7 @@ public class FriendsListFragment extends Fragment {
 		ListView friendsListView = (ListView) getActivity().findViewById(R.id.friendsListView);
 		friendsListView.setAdapter(friendsListAdapter);
 		friendsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-			public void onItemClick(AdapterView parent, View view, int position,long id) {
+			public void onItemClick(AdapterView parent, View view, int position, long id) {
 				Intent intent = new Intent();
 				String itemId = partiesList.get(position).get("clientId");
 				intent.putExtra("targetId", itemId);
@@ -124,12 +125,17 @@ public class FriendsListFragment extends Fragment {
 												e.printStackTrace();
 											}
 										}
-										try {
-											mTA.anIM.getClientsStatus(mTA.mUsersMap.keySet());
-										} catch (ArrownockException e) {
-											// TODO Auto-generated catch block
-											e.printStackTrace();
-										}
+										mTA.anIM.getClientsStatus(mTA.mUsersMap.keySet(), new IAnIMGetClientsStatusCallback() {
+											@Override
+											public void onSuccess(AnIMGetClientsStatusCallbackData anIMGetClientsStatusCallbackData) {
+												getClientStatus(anIMGetClientsStatusCallbackData);
+											}
+
+											@Override
+											public void onError(ArrownockException e) {
+												e.printStackTrace();
+											}
+										});
 									}
 								});
 								

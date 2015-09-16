@@ -1,18 +1,9 @@
 package co.herxun.tinichat.activity;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
@@ -31,27 +22,25 @@ import android.view.Window;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+
+import com.arrownock.exception.ArrownockException;
+import com.arrownock.im.callback.AnIMBinaryCallbackData;
+import com.arrownock.im.callback.AnIMCallbackAdapter;
+import com.arrownock.im.callback.AnIMMessageCallbackData;
+import com.arrownock.im.callback.AnIMStatusUpdateCallbackData;
+import com.arrownock.im.callback.AnIMTopicBinaryCallbackData;
+import com.arrownock.social.AnSocialMethod;
+import com.arrownock.social.IAnSocialCallback;
+
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import co.herxun.tinichat.AppSectionsPagerAdapter;
 import co.herxun.tinichat.R;
 import co.herxun.tinichat.TinichatApplication;
 import co.herxun.tinichat.Utils;
-import co.herxun.tinichat.fragment.FriendsListFragment;
-import co.herxun.tinichat.fragment.TopicListFragment;
-
-import com.arrownock.exception.ArrownockException;
-import com.arrownock.im.callback.AnIMAddClientsCallbackData;
-import com.arrownock.im.callback.AnIMBinaryCallbackData;
-import com.arrownock.im.callback.AnIMCallbackAdapter;
-import com.arrownock.im.callback.AnIMCreateTopicCallbackData;
-import com.arrownock.im.callback.AnIMGetClientIdCallbackData;
-import com.arrownock.im.callback.AnIMGetClientsStatusCallbackData;
-import com.arrownock.im.callback.AnIMGetTopicListCallbackData;
-import com.arrownock.im.callback.AnIMMessageCallbackData;
-import com.arrownock.im.callback.AnIMStatusUpdateCallbackData;
-import com.arrownock.im.callback.AnIMTopicBinaryCallbackData;
-import com.arrownock.im.callback.AnIMTopicMessageCallbackData;
-import com.arrownock.social.AnSocialMethod;
-import com.arrownock.social.IAnSocialCallback;
 
 public class MainActivity extends ActionBarActivity{
 	private AppSectionsPagerAdapter mAppSectionsPagerAdapter;
@@ -132,7 +121,6 @@ public class MainActivity extends ActionBarActivity{
 	/**
 	 * @param username Username
 	 * @param pwd Password
-	 * @param action Log in "users/login" ; Register "users/create"
 	 */
 	private void login(final String username,final String pwd){
 		final Map<String, Object> params = new HashMap<String, Object>();
@@ -249,30 +237,7 @@ public class MainActivity extends ActionBarActivity{
 	}
 	
 	private AnIMCallbackAdapter mAnIMCallback = new AnIMCallbackAdapter() {
-		@Override
-		public void getClientId(final AnIMGetClientIdCallbackData data) {}
-		
-		@Override
-		public void getClientsStatus(final AnIMGetClientsStatusCallbackData data){
-			((FriendsListFragment)mAppSectionsPagerAdapter.getItem(Utils.Constant.Fragment.ALL_USERS)).getClientStatus(data);
-		}
-		
-		@Override
-		public void getTopicList(final AnIMGetTopicListCallbackData data){
-			((TopicListFragment)mAppSectionsPagerAdapter.getItem(Utils.Constant.Fragment.TOPICS)).getTopicList(data);
-		}
-		
-		@Override
-		public void createTopic(final AnIMCreateTopicCallbackData data){
-			((TopicListFragment)mAppSectionsPagerAdapter.getItem(Utils.Constant.Fragment.TOPICS)).createTopic(data);
-			
-		}
-		
-		@Override
-		public void addClientsToTopic(AnIMAddClientsCallbackData data){
-			((TopicListFragment)mAppSectionsPagerAdapter.getItem(Utils.Constant.Fragment.TOPICS)).addClientsToTopic(data);
-		}
-		
+
 		@Override
 		public void receivedMessage(AnIMMessageCallbackData data) {
 			final String from = data.getFrom();
@@ -300,7 +265,7 @@ public class MainActivity extends ActionBarActivity{
 				}
 			});
 		}
-		
+
 		@Override
 		public void receivedTopicBinary(final AnIMTopicBinaryCallbackData data){
 			final String fromTopic = data.getTopic();
@@ -310,7 +275,7 @@ public class MainActivity extends ActionBarActivity{
 				}
 			});
 		}
-		
+
 		@Override
 		public void statusUpdate(final AnIMStatusUpdateCallbackData data){
 			final ArrownockException e = data.getException();
