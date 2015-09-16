@@ -33,8 +33,6 @@ import co.herxun.tinichat.Utils;
 import co.herxun.tinichat.activity.ChatActivity;
 
 import com.arrownock.exception.ArrownockException;
-import com.arrownock.im.callback.AnIMAddClientsCallbackData;
-import com.arrownock.im.callback.AnIMCreateTopicCallbackData;
 import com.arrownock.im.callback.AnIMGetTopicListCallbackData;
 import com.arrownock.im.callback.IAnIMGetTopicListCallback;
 import com.arrownock.im.callback.IAnIMTopicCallback;
@@ -63,7 +61,7 @@ public class TopicListFragment extends Fragment {
 			ListView friendsListView = (ListView) getActivity().findViewById(R.id.topicsListView);
 			friendsListView.setAdapter(topicsListAdapter);
 			friendsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-				public void onItemClick(AdapterView parent, View view, int position,long id) {
+				public void onItemClick(AdapterView parent, View view, int position, long id) {
 					String itemId = topicsList.get(position).get("id");
 					Set<String> userSet = new HashSet<String>();
 					userSet.add(mTA.mClientId);
@@ -82,7 +80,7 @@ public class TopicListFragment extends Fragment {
 			});
 			
 			Button createTopicText = (Button)getActivity().findViewById(R.id.btn_create);
-			createTopicText.setOnClickListener(new OnClickListener(){
+			createTopicText.setOnClickListener(new OnClickListener() {
 				@Override
 				public void onClick(View v) {
 					showTopicCreateDialog();
@@ -128,7 +126,7 @@ public class TopicListFragment extends Fragment {
 			editText.setHint("New Topic Name");
 			adb.setView(editText);
 			adb.setNegativeButton("Cancel", null);
-			adb.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+			adb.setPositiveButton("OK", new DialogInterface.OnClickListener() {
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
 					mTA.anIM.createTopic(editText.getText().toString(), new IAnIMTopicCallback() {
@@ -182,12 +180,15 @@ public class TopicListFragment extends Fragment {
 					}
 				}
 			}
-			getActivity().runOnUiThread(new Runnable(){
-				public void run() {
-					topicsListAdapter.notifyDataSetChanged();
-					getActivity().setProgressBarIndeterminateVisibility(false);
-				}
-			});
+
+			if (getActivity() != null) {
+				getActivity().runOnUiThread(new Runnable() {
+					public void run() {
+						topicsListAdapter.notifyDataSetChanged();
+						getActivity().setProgressBarIndeterminateVisibility(false);
+					}
+				});
+			}
 		}
 		
 		public void createTopic(String topicId){

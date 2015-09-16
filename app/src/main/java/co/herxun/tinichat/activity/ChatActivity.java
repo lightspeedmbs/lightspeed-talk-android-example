@@ -51,11 +51,12 @@ import com.arrownock.im.callback.AnIMCallbackAdapter;
 import com.arrownock.im.callback.AnIMGetTopicInfoCallbackData;
 import com.arrownock.im.callback.AnIMMessageCallbackData;
 import com.arrownock.im.callback.AnIMMessageSentCallbackData;
-import com.arrownock.im.callback.AnIMRemoveClientsCallbackData;
 import com.arrownock.im.callback.AnIMStatusUpdateCallbackData;
 import com.arrownock.im.callback.AnIMTopicBinaryCallbackData;
 import com.arrownock.im.callback.AnIMTopicMessageCallbackData;
+import com.arrownock.im.callback.IAnIMGetTopicInfoCallback;
 import com.arrownock.im.callback.IAnIMHistoryCallback;
+import com.arrownock.im.callback.IAnIMTopicCallback;
 
 public class ChatActivity extends Activity {
 	private Button btnSend, btnMore,btnDetail;
@@ -87,15 +88,31 @@ public class ChatActivity extends Activity {
 		if(roomType == Utils.Constant.RoomType.CLIENT){
 			textTargetId.setText(mTA.mUsersMap.get(targetId));
 			findViewById(R.id.btn_detail).setVisibility(View.GONE);
-		}else{
-			try {
-				mTA.anIM.getTopicInfo(targetId);
-			} catch (ArrownockException e) {
-				e.printStackTrace();
-			}
+		}else {
+			mTA.anIM.getTopicInfo(targetId, new IAnIMGetTopicInfoCallback() {
+				@Override
+				public void onSuccess(AnIMGetTopicInfoCallbackData anIMGetTopicInfoCallbackData) {
+					mTopicInfo = anIMGetTopicInfoCallbackData;
+					runOnUiThread(new Runnable() {
+						public void run() {
+							textTargetId.setText(mTopicInfo.getTopicName());
+						}
+					});
+				}
+
+				@Override
+				public void onError(final ArrownockException e) {
+					e.printStackTrace();
+					runOnUiThread(new Runnable() {
+						public void run() {
+							Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+						}
+					});
+				}
+			});
 		}
 		
-		Log.i("targetId: "+targetId,"roomType: "+roomType);
+		Log.i("targetId: " + targetId, "roomType: " + roomType);
 	
 		getHistory();
 	}
@@ -118,11 +135,23 @@ public class ChatActivity extends Activity {
 			if(roomType == Utils.Constant.RoomType.TOPIC){
 				Set<String> userSet = new HashSet<String>();
 				userSet.add(mTA.mClientId);
-				try {
-					mTA.anIM.removeClientsFromTopic(targetId, userSet);
-				} catch (ArrownockException e) {
-					e.printStackTrace();
-				}
+				mTA.anIM.removeClientsFromTopic(targetId, userSet, new IAnIMTopicCallback() {
+					@Override
+					public void onSuccess(String topicId, long createdTimestamp, long updatedTimestamp) {
+							finish();
+					}
+
+					@Override
+					public void onError(final ArrownockException e) {
+						e.printStackTrace();
+
+						runOnUiThread(new Runnable() {
+							public void run() {
+								Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+							}
+						});
+					}
+				});
 			}else{
 				finish();
 			}
@@ -215,21 +244,17 @@ public class ChatActivity extends Activity {
 		String data = mymessage.getData();
 		byte[] content = mymessage.getContent();
 		
-		Set<String> targetIds;
-		targetIds = new HashSet();
-		targetIds.add(targetId);
-		
 		try {
 			if(type == Utils.Constant.AttachmentType.IMAGE){
 				if (roomType == Utils.Constant.RoomType.CLIENT) {
-					mTA.anIM.sendBinary(targetIds, content,Utils.Constant.AttachmentType.IMAGE);
+					mTA.anIM.sendBinary(targetId, content,Utils.Constant.AttachmentType.IMAGE);
 				} else if (roomType == Utils.Constant.RoomType.TOPIC) {
 					mTA.anIM.sendBinaryToTopic(targetId, content,Utils.Constant.AttachmentType.IMAGE);
 				}
 			}else if(type.equals(Utils.Constant.AttachmentType.TEXT)){
-				Log.i("send Msg to " + targetIds, "message: " + msg);
+				Log.i("send Msg to " + targetId, "message: " + msg);
 				if (roomType == Utils.Constant.RoomType.CLIENT) {
-					mTA.anIM.sendMessage(targetIds, msg);
+					mTA.anIM.sendMessage(targetId, msg);
 				} else if (roomType == Utils.Constant.RoomType.TOPIC) {
 					mTA.anIM.sendMessageToTopic(targetId, msg);
 				}
@@ -238,7 +263,7 @@ public class ChatActivity extends Activity {
 				map.put(Utils.Constant.MsgCustomData.DATA, data);
 				map.put(Utils.Constant.MsgCustomData.TYPE, type);
 				if (roomType == Utils.Constant.RoomType.CLIENT) {
-					mTA.anIM.sendMessage(targetIds, msg, map);
+					mTA.anIM.sendMessage(targetId, msg, map);
 				} else if (roomType == Utils.Constant.RoomType.TOPIC) {
 					mTA.anIM.sendMessageToTopic(targetId, msg, map);
 				}
@@ -435,37 +460,6 @@ public class ChatActivity extends Activity {
 					startActivity(it);
 					finish();
 				}
-			}
-		}
-		
-		@Override
-		public void removeClientsFromTopic(final AnIMRemoveClientsCallbackData data){
-			if(data.getException()!=null){
-				Log.e("removeClientsFromTopic",data.getException().getMessage());
-				runOnUiThread(new Runnable() {
-					public void run() {
-						Toast.makeText(getBaseContext(),data.getException().getMessage(), Toast.LENGTH_LONG).show();
-					}
-				});
-			}else{
-				finish();
-			}
-		}
-		@Override
-		public void getTopicInfo(final AnIMGetTopicInfoCallbackData data){
-			if(data.getException() != null){
-				runOnUiThread(new Runnable() {
-					public void run() {
-						Toast.makeText(getBaseContext(),data.getException().getMessage(), Toast.LENGTH_LONG).show();
-					}
-				});
-			}else{
-				mTopicInfo = data;
-				runOnUiThread(new Runnable() {
-					public void run() {
-						textTargetId.setText(mTopicInfo.getTopicName());
-					}
-				});
 			}
 		}
 	};
