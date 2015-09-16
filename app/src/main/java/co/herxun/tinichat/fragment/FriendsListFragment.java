@@ -159,28 +159,32 @@ public class FriendsListFragment extends Fragment {
 	 */
 	public void getClientStatus(final AnIMGetClientsStatusCallbackData data){
 		if(data.isError()){
-			getActivity().runOnUiThread(new Runnable(){
-				public void run() {
-					Toast.makeText(getActivity(), data.getException().getMessage(), Toast.LENGTH_LONG).show();
-				}
-			});
-		}else{
-			getActivity().runOnUiThread(new Runnable(){
-				public void run() {
-					Map<String,Boolean> clientStatusMap = data.getClientsStatus();
-					for(int i=0;i<partiesList.size();i++){
-						HashMap<String,String> user = partiesList.get(i);
-						if(clientStatusMap.containsKey(user.get("clientId"))){
-							user.remove("status");
-							user.put("status", clientStatusMap.get(user.get("clientId")) ? "Online":"Offline");
-							partiesList.remove(i);
-							partiesList.add(i, user);
-							friendsListAdapter.notifyDataSetChanged();
-						}
+			if (getActivity() != null) {
+				getActivity().runOnUiThread(new Runnable() {
+					public void run() {
+						Toast.makeText(getActivity(), data.getException().getMessage(), Toast.LENGTH_LONG).show();
 					}
-					getActivity().setProgressBarIndeterminateVisibility(false);
-				}
-			});
+				});
+			}
+		}else{
+			if (getActivity() != null) {
+				getActivity().runOnUiThread(new Runnable() {
+					public void run() {
+						Map<String, Boolean> clientStatusMap = data.getClientsStatus();
+						for (int i = 0; i < partiesList.size(); i++) {
+							HashMap<String, String> user = partiesList.get(i);
+							if (clientStatusMap.containsKey(user.get("clientId"))) {
+								user.remove("status");
+								user.put("status", clientStatusMap.get(user.get("clientId")) ? "Online" : "Offline");
+								partiesList.remove(i);
+								partiesList.add(i, user);
+								friendsListAdapter.notifyDataSetChanged();
+							}
+						}
+						getActivity().setProgressBarIndeterminateVisibility(false);
+					}
+				});
+			}
 		}
 	}
 }
